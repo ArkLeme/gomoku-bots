@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gomoku Bot Arena</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0e17;
+      color: #e0dff0;
+      font-family: 'Courier New', monospace;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── CONFIG VIEW ─────────────────────────────────────────────────────────── */
+
+    #config-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .cfg-container {
+      width: 660px;
+      max-width: 100%;
+    }
+
+    .cfg-title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      color: #7b7b9b;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    .cfg-card {
+      background: #13121f;
+      border: 1px solid #1e1d2e;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .cfg-card-title {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #4a4a6a;
+      margin-bottom: 10px;
+    }
+
+    .cfg-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid #1e1d2e;
+    }
+    .cfg-row:last-child { border-bottom: none; }
+
+    .cfg-row label {
+      width: 88px;
+      font-size: 11px;
+      color: #4a4a6a;
+      flex-shrink: 0;
+    }
+
+    .cfg-row input[type="text"],
+    .cfg-row input[type="password"],
+    .cfg-row input[type="number"],
+    .cfg-row select {
+      flex: 1;
+      background: #0f0e17;
+      border: 1px solid #2a2940;
+      border-radius: 4px;
+      color: #e0dff0;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 5px 8px;
+      outline: none;
+      min-width: 0;
+    }
+
+    .cfg-row input:focus, .cfg-row select:focus {
+      border-color: #4040a0;
+    }
+
+    .cfg-row .cfg-unit {
+      font-size: 10px;
+      color: #4a4a6a;
+      flex-shrink: 0;
+    }
+
+    .bots-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .auth-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .auth-btn {
+      flex: 1;
+      padding: 5px 0;
+      border-radius: 4px;
+      border: 1px solid #2a2940;
+      background: #0f0e17;
+      color: #4a4a6a;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .auth-btn.active {
+      background: #1e1d40;
+      color: #a0a0e0;
+      border-color: #4040a0;
+    }
+
+    .start-btn {
+      width: 100%;
+      padding: 12px;
+      background: #1a192e;
+      border: 1px solid #4040a0;
+      border-radius: 6px;
+      color: #a0a0e0;
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .start-btn:hover:not(:disabled) { background: #252450; }
+    .start-btn:disabled { opacity: 0.5; cursor: default; }
+
+    #start-error {
+      display: none;
+      margin-top: 8px;
+      color: #f87171;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    /* ── GAME VIEW ───────────────────────────────────────────────────────────── */
+
+    #game-view {
+      display: none;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-inner {
+      display: flex;
+      height: 100%;
+    }
+
+    #board-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      min-width: 0;
+    }
+
+    #board-title {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: #7b7b9b;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 4px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.6);
+    }
+
+    #info-panel {
+      width: 268px;
+      min-width: 268px;
+      background: #13121f;
+      border-left: 1px solid #1e1d2e;
+      padding: 14px 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    .section-title {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #4a4a6a;
+      margin-bottom: 6px;
+    }
+
+    .card {
+      background: #1a192b;
+      border-radius: 6px;
+      padding: 12px;
+      border: 1px solid #222138;
+    }
+
+    .phase-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+    .phase-lobby    { background: #252433; color: #6b6b8b; }
+    .phase-playing  { background: #0d2e1a; color: #4ade80; }
+    .phase-gameover { background: #2e0d0d; color: #f87171; }
+
+    .dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+    .dot-black { background: #222; border: 1.5px solid #555; }
+    .dot-white { background: #f0f0f0; border: 1.5px solid #aaa; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 1px solid #1e1d2e;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .lbl { color: #4a4a6a; }
+    .val { color: #e0dff0; font-weight: bold; text-align: right; }
+
+    #timer-display {
+      font-size: 32px;
+      font-weight: bold;
+      text-align: center;
+      padding: 6px 0 8px;
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    .t-ok     { color: #4ade80; }
+    .t-warn   { color: #facc15; }
+    .t-danger { color: #f87171; animation: pulse 0.6s infinite alternate; }
+    .t-off    { color: #333; }
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+
+    #timer-track {
+      height: 5px;
+      background: #0f0e17;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #timer-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.25s linear, background 0.4s;
+    }
+
+    .dec-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #4a4a6a; margin-top: 8px; }
+    .dec-label:first-child { margin-top: 0; }
+    .dec-value { font-size: 13px; color: #e0dff0; margin-top: 2px; }
+    .dec-reason { font-size: 11px; color: #5a5a7a; font-style: italic; margin-top: 6px; line-height: 1.5; word-break: break-word; }
+
+    #result-banner {
+      display: none;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .res-win  { background: #0d2e1a; color: #4ade80; }
+    .res-loss { background: #2e0d0d; color: #f87171; }
+    .res-draw { background: #2e2a0d; color: #facc15; }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #5a5a7a;
+      padding: 3px 0;
+    }
+    .legend-swatch {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    #conn-status {
+      font-size: 10px;
+      text-align: center;
+      padding: 3px;
+      letter-spacing: 1px;
+    }
+    .conn-ok  { color: #4ade80; }
+    .conn-err { color: #f87171; }
+
+    .pov-btn {
+      flex: 1;
+      padding: 5px 0;
+      border-radius: 4px;
+      border: 1px solid #2a2940;
+      background: #0f0e17;
+      color: #4a4a6a;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .pov-active {
+      background: #1e1d40;
+      color: #a0a0e0;
+      border-color: #4040a0;
+    }
+
+    .new-game-btn {
+      width: 100%;
+      padding: 10px;
+      background: #1a2e1a;
+      border: 1px solid #40a040;
+      border-radius: 6px;
+      color: #60d060;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .new-game-btn:hover { background: #223022; }
+    .stats-list { display:flex;flex-direction:column;gap:8px }
+    .stat-row { display:flex;flex-direction:column;gap:4px }
+    .stat-label { display:flex;justify-content:space-between;font-size:12px;color:#cfcff0 }
+    .stat-bar { height:10px;background:#2b2b3a;border-radius:6px;overflow:hidden }
+    .stat-bar-fill { height:100%;background:#4ade80;width:0%;transition:width 0.3s }
+
+    #review-section { display:none; }
+    .review-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .review-btn {
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: 1px solid #2a2940;
+      background: #1a192e;
+      color: #a0a0e0;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .review-btn:hover:not(:disabled) { background: #252450; }
+    .review-btn:disabled { opacity: 0.35; cursor: default; }
+    .review-counter {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: #9090c0;
+      letter-spacing: 1px;
+    }
+    .review-move-info {
+      font-size: 10px;
+      color: #5a5a7a;
+      text-align: center;
+      margin-top: 4px;
+      min-height: 14px;
+    }
+    .review-search-stats {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #1e1d2e;
+      font-size: 11px;
+      color: #9090c0;
+      line-height: 1.5;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── CONFIG VIEW ──────────────────────────────────────────────────────────── -->
+<div id="config-view">
+  <div class="cfg-container">
+    <div class="cfg-title">Gomoku Bot Arena</div>
+
+    <div class="cfg-card">
+      <div class="cfg-card-title">Game Settings</div>
+      <div class="cfg-row">
+        <label>Room Name</label>
+        <input type="text" id="c-room" value="arkleme-room">
+      </div>
+      <div class="cfg-row">
+        <label>Move Time</label>
+        <input type="number" id="c-movetime" value="5" min="1" max="300" style="width:64px;flex:none">
+        <span class="cfg-unit">seconds</span>
+      </div>
+      <div class="cfg-row">
+        <label>Server URL</label>
+        <input type="text" id="c-url" value="https://api-connect5.dev.codebusters.cloud">
+      </div>
+      <div class="cfg-row">
+        <label>Board Preset</label>
+        <select id="c-preset">
+          <option value="">— Free play (empty board) —</option>
+          <optgroup label="Standard openings (Renju / Pro rule)">
+            <option value="0:Black:8:8;1:White:8:9;2:Black:8:7;">Direct — Chokushi</option>
+            <option value="0:Black:8:8;1:White:9:9;2:Black:7:7;">Diagonal — Naname</option>
+            <option value="0:Black:8:8;1:White:8:10;2:Black:8:6;">Parallel — Heiko</option>
+            <option value="0:Black:8:8;1:White:9:9;2:Black:6:9;">Oblique — Naname-Hira</option>
+            <option value="0:Black:8:8;1:White:10:10;2:Black:6:6;">Long Diagonal</option>
+            <option value="0:Black:8:8;1:White:8:10;2:Black:10:8;">Cross — Juji</option>
+            <option value="0:Black:8:8;1:White:9:9;2:Black:9:7;">Flower — Kaede</option>
+            <option value="0:Black:8:8;1:White:9:9;2:Black:8:9;3:White:9:8;">Square — Shikaku</option>
+            <option value="0:Black:8:8;1:White:8:10;2:Black:10:9;">Pyramid — Kakure</option>
+            <option value="0:Black:8:8;1:White:11:11;2:Black:5:5;">Far Diagonal — Pro D3</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="cfg-row">
+        <label>Random Board</label>
+        <div style="flex:1;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="c-random-board">
+          <span style="color:#7b7b9b;font-size:12px">Pick a random initial board between games</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bots-grid">
+      <!-- Bot 1 -->
+      <div class="cfg-card">
+        <div class="cfg-card-title">Bot 1 — creates room</div>
+        <div class="auth-toggle">
+          <button id="b1-btn-guest"      class="auth-btn active" onclick="setAuth(1,'guest')">Guest</button>
+          <button id="b1-btn-registered" class="auth-btn"        onclick="setAuth(1,'registered')">Registered</button>
+        </div>
+        <div id="b1-guest-fields">
+          <div class="cfg-row"><label>Name</label><input type="text" id="b1-name"></div>
+        </div>
+        <div id="b1-reg-fields" style="display:none">
+          <div class="cfg-row"><label>Username</label><input type="text" id="b1-username"></div>
+          <div class="cfg-row"><label>Password</label><input type="password" id="b1-password"></div>
+        </div>
+        <div class="cfg-row">
+          <label>Strategy</label>
+          <select id="b1-strategy">
+            <option value="adaptive" selected>Adaptive ★ (default)</option>
+            <option value="search">Search (PVS+TT+VCF)</option>
+            <option value="vct">VCT (forced threats)</option>
+            <option value="vcf">VCF (forced fours)</option>
+            <option value="tactical">Tactical</option>
+            <option value="pattern">Pattern</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bot 2 -->
+      <div class="cfg-card">
+        <div class="cfg-card-title">Bot 2 — joins room</div>
+        <div class="auth-toggle">
+          <button id="b2-btn-guest"      class="auth-btn active" onclick="setAuth(2,'guest')">Guest</button>
+          <button id="b2-btn-registered" class="auth-btn"        onclick="setAuth(2,'registered')">Registered</button>
+        </div>
+        <div id="b2-guest-fields">
+          <div class="cfg-row"><label>Name</label><input type="text" id="b2-name"></div>
+        </div>
+        <div id="b2-reg-fields" style="display:none">
+          <div class="cfg-row"><label>Username</label><input type="text" id="b2-username"></div>
+          <div class="cfg-row"><label>Password</label><input type="password" id="b2-password"></div>
+        </div>
+        <div class="cfg-row">
+          <label>Strategy</label>
+          <select id="b2-strategy">
+            <option value="adaptive" selected>Adaptive ★ (default)</option>
+            <option value="search">Search (PVS+TT+VCF)</option>
+            <option value="vct">VCT (forced threats)</option>
+            <option value="vcf">VCF (forced fours)</option>
+            <option value="tactical">Tactical</option>
+            <option value="pattern">Pattern</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="randomize-btn" onclick="generateRandomNames(true)" style="margin-right:8px;background:#2a2a3a;">Randomize</button>
+    <button class="start-btn" id="start-btn" onclick="startGame()">Start Game</button>
+    <div id="start-error"></div>
+  </div>
+</div>
+
+<!-- ── GAME VIEW ─────────────────────────────────────────────────────────────── -->
+<div id="game-view">
+  <div id="game-inner">
+    <div id="board-section">
+      <div id="board-title">Gomoku Bot Arena</div>
+      <canvas id="c"></canvas>
+    </div>
+
+    <div id="info-panel">
+      <div id="conn-status" class="conn-err">● CONNECTING</div>
+
+      <div>
+        <div class="section-title">Status</div>
+        <div class="card">
+          <div id="result-banner"></div>
+          <div><span id="phase-badge" class="phase-badge phase-lobby">LOBBY</span></div>
+          <div class="info-row">
+            <span class="lbl">Room</span>
+            <span class="val" id="v-room">—</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Bot 1 color</span>
+            <span class="val" id="v-mycolor">—</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Turn</span>
+            <span class="val" id="v-turn">—</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Time limit</span>
+            <span class="val" id="v-timelimit">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="timer-section" style="display:none">
+        <div class="section-title">Turn Timer</div>
+        <div class="card">
+          <div id="timer-display" class="t-off">—</div>
+          <div id="timer-track"><div id="timer-fill" style="width:100%;background:#333"></div></div>
+        </div>
+      </div>
+
+      <div id="decision-section" style="display:none">
+        <div class="section-title">Last Decision</div>
+        <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <div class="dec-label" style="color:#4ade80;letter-spacing:1px">Bot 1</div>
+            <div class="dec-label" style="margin-top:6px">Strategy</div>
+            <div class="dec-value" id="d-strategy" style="font-size:11px">—</div>
+            <div class="dec-label">Position</div>
+            <div class="dec-value" id="d-pos" style="font-size:11px">—</div>
+            <div class="dec-label">Score</div>
+            <div class="dec-value" id="d-score" style="font-size:11px">—</div>
+            <div class="dec-reason" id="d-reason" style="font-size:10px"></div>
+          </div>
+          <div>
+            <div class="dec-label" style="color:#f87171;letter-spacing:1px">Bot 2</div>
+            <div class="dec-label" style="margin-top:6px">Strategy</div>
+            <div class="dec-value" id="d2-strategy" style="font-size:11px">—</div>
+            <div class="dec-label">Position</div>
+            <div class="dec-value" id="d2-pos" style="font-size:11px">—</div>
+            <div class="dec-label">Score</div>
+            <div class="dec-value" id="d2-score" style="font-size:11px">—</div>
+            <div class="dec-reason" id="d2-reason" style="font-size:10px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Heatmap</div>
+        <div class="card">
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:linear-gradient(to right,rgba(74,222,128,0.85) 50%,rgba(248,113,113,0.85) 50%)"></div>
+            <span>Both bots: top=Bot1, bottom=Bot2</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:rgba(74,222,128,0.85)"></div>
+            <span>Bot 1 only</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:rgba(248,113,113,0.85)"></div>
+            <span>Bot 2 only</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:transparent;border:2.5px solid #60a5fa"></div>
+            <span>Bot 1 chosen move</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:transparent;border:2.5px solid #f87171"></div>
+            <span>Bot 2 chosen move</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Strategy Stats</div>
+        <div class="card" id="stats-card">
+          <div id="stats-total" style="font-size:12px;color:#9aa0c8;margin-bottom:8px">No games yet</div>
+          <div id="stats-list" class="stats-list"></div>
+        </div>
+      </div>
+
+      <div id="init-section" style="display:none">
+        <div class="section-title">Initial Board</div>
+        <div class="card" id="init-history" style="font-size:10px;color:#4a4a6a;word-break:break-all;line-height:1.5"></div>
+      </div>
+
+      <div id="restart-section" style="display:none">
+        <div style="display:flex;gap:8px">
+          <button class="new-game-btn" style="flex:1;width:auto" onclick="restart()">New Game</button>
+          <button class="new-game-btn" style="flex:1;width:auto;background:#0d2e0d;border-color:#4ade80;color:#4ade80" onclick="fastRestart()">Fast Restart</button>
+        </div>
+      </div>
+
+      <div id="review-section">
+        <div class="section-title">Move Review</div>
+        <div class="card">
+          <div class="review-controls">
+            <button class="review-btn" id="review-first" onclick="reviewGoTo(0)" title="First move">⏮</button>
+            <button class="review-btn" id="review-prev"  onclick="reviewStep(-1)" title="Previous move">←</button>
+            <span class="review-counter" id="review-counter">— / —</span>
+            <button class="review-btn" id="review-next"  onclick="reviewStep(1)"  title="Next move">→</button>
+            <button class="review-btn" id="review-last"  onclick="reviewGoTo(-1)" title="Last move">⏭</button>
+          </div>
+          <div class="review-move-info" id="review-move-info"></div>
+          <div class="review-search-stats" id="review-search-stats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BOARD_SIZE = 18;
+const COLS = 'ABCDEFGHIJKLMNOPQR';
+
+let state = null;
+let timerTick = null;
+let pov = 'mine';
+let appView = 'config'; // 'config' | 'game'
+const botAuth = { 1: 'guest', 2: 'guest' };
+
+// ── Move review ───────────────────────────────────────────────────────────────
+// Each entry: { board, lastDecision, candidates, opponentCandidates, moveNum, color, row, column }
+let moveHistory = [];
+let reviewIndex = null; // null = live view
+let pendingMoves = { Black: null, White: null };
+let lastBot1DecisionKey = null;
+let lastBot2DecisionKey = null;
+let reviewBaseBoard = null;
+
+function isGameOverPhase(phase) {
+  return String(phase || '').toLowerCase() === 'gameover';
+}
+
+function cloneList(value) {
+  return JSON.parse(JSON.stringify(value || []));
+}
+
+function decisionKey(decision) {
+  if (!decision || !decision.strategy || String(decision.strategy).startsWith('search d=')) {
+    return null;
+  }
+  return [decision.strategy, decision.row, decision.column, decision.score, decision.reason].join('|');
+}
+
+function boardKey(board) {
+  return JSON.stringify(board || []);
+}
+
+// moverDecision supplies the row/col for position matching; bot1Decision/bot2Decision are stored for review display.
+function stagePendingMove(color, board, moverDecision, bot1Decision, bot2Decision, candidates, opponentCandidates) {
+  if (!color || !moverDecision) {
+    console.warn('[history] stagePendingMove skipped', { color, hasMoverDecision: !!moverDecision, bot1Decision, bot2Decision });
+    return;
+  }
+  // Only allow overwriting a pending move if the new staging comes from the same board state.
+  // A different boardKey means the bot has already played its current move and is now thinking
+  // about the next one — preserve the old entry so it can be matched when the board updates.
+  const bk = boardKey(board);
+  const existing = pendingMoves[color];
+  if (existing && existing.boardKey !== bk) {
+    console.warn('[history] stagePendingMove: preserving existing pending (different board)', {
+      color,
+      kept: `col ${COLS[existing.column]} row ${existing.row + 1}`,
+      ignored: `col ${COLS[moverDecision.column]} row ${moverDecision.row + 1}`,
+    });
+    return;
+  }
+  pendingMoves[color] = {
+    boardKey: bk,
+    row: moverDecision.row,
+    column: moverDecision.column,
+    color,
+    bot1Decision: bot1Decision ? Object.assign({}, bot1Decision) : null,
+    bot2Decision: bot2Decision ? Object.assign({}, bot2Decision) : null,
+    candidates: cloneList(candidates),
+    opponentCandidates: cloneList(opponentCandidates),
+  };
+  console.log('[history] staged', {
+    color,
+    pos: `col ${COLS[moverDecision.column]} row ${moverDecision.row + 1}`,
+    bot1Decision: pendingMoves[color].bot1Decision,
+    bot2Decision: pendingMoves[color].bot2Decision,
+    candidates: candidates.length,
+    opponentCandidates: opponentCandidates.length,
+  });
+}
+
+function diffBoard(prevBoard, nextBoard) {
+  let row = -1;
+  let column = -1;
+  let color = null;
+
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const prevPiece = prevBoard?.[r]?.[c] || null;
+      const nextPiece = nextBoard?.[r]?.[c] || null;
+      if (prevPiece !== nextPiece) {
+        if (prevPiece !== null || nextPiece === null) {
+          return null;
+        }
+        row = r;
+        column = c;
+        color = nextPiece;
+      }
+    }
+  }
+
+  return row >= 0 ? { row, column, color } : null;
+}
+
+function captureReviewSnapshot(currentState) {
+  if (!currentState || currentState.phase === 'lobby') return;
+
+  const currentBoardKey = boardKey(currentState.board);
+  const bot1Decision = currentState.lastDecision;
+  const bot2Decision = currentState.opponentLastDecision;
+  const bot1DecisionKey = bot1Decision ? decisionKey(bot1Decision) : null;
+  const bot2DecisionKey = bot2Decision ? decisionKey(bot2Decision) : null;
+
+  // Capture both bots' decisions when either finalises, so the review can show both.
+  if (bot1DecisionKey && bot1DecisionKey !== lastBot1DecisionKey) {
+    lastBot1DecisionKey = bot1DecisionKey;
+    stagePendingMove(
+      currentState.myColor, currentState.board,
+      bot1Decision,   // mover = Bot 1
+      bot1Decision,
+      decisionKey(currentState.opponentLastDecision) ? currentState.opponentLastDecision : null,
+      currentState.candidates, currentState.opponentCandidates,
+    );
+  }
+  if (bot2DecisionKey && bot2DecisionKey !== lastBot2DecisionKey) {
+    lastBot2DecisionKey = bot2DecisionKey;
+    stagePendingMove(
+      currentState.myColor === 'Black' ? 'White' : 'Black', currentState.board,
+      bot2Decision,   // mover = Bot 2
+      decisionKey(currentState.lastDecision) ? currentState.lastDecision : null,
+      bot2Decision,
+      currentState.candidates, currentState.opponentCandidates,
+    );
+  }
+
+  const previousBoard = moveHistory.length > 0
+    ? moveHistory[moveHistory.length - 1].board
+    : reviewBaseBoard;
+
+  if (!previousBoard) {
+    reviewBaseBoard = cloneList(currentState.board);
+    return;
+  }
+
+  const previousBoardKey = moveHistory.length > 0
+    ? moveHistory[moveHistory.length - 1].boardKey
+    : boardKey(previousBoard);
+
+  if (previousBoardKey === currentBoardKey) return;
+
+  // Collect all new stones between the last recorded board and the current one.
+  const diffs = [];
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const prev = previousBoard?.[r]?.[c] || null;
+      const curr = currentState.board?.[r]?.[c] || null;
+      if (prev !== curr) {
+        if (prev !== null || curr === null) return; // stone removed — invalid
+        diffs.push({ row: r, column: c, color: curr });
+      }
+    }
+  }
+  if (diffs.length === 0) return;
+
+  // When multiple stones arrived in one broadcast, reconstruct the alternation order
+  // so each stone gets its own history entry with the correct intermediate board.
+  const orderedDiffs = [];
+  if (diffs.length > 1) {
+    const lastColor = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1].color : null;
+    let nextColor = lastColor === 'Black' ? 'White' : 'Black';
+    const byColor = { Black: diffs.filter(s => s.color === 'Black'), White: diffs.filter(s => s.color === 'White') };
+    const idx = { Black: 0, White: 0 };
+    while (idx.Black < byColor.Black.length || idx.White < byColor.White.length) {
+      if (idx[nextColor] < byColor[nextColor].length) {
+        orderedDiffs.push(byColor[nextColor][idx[nextColor]++]);
+        nextColor = nextColor === 'Black' ? 'White' : 'Black';
+      } else {
+        const other = nextColor === 'Black' ? 'White' : 'Black';
+        while (idx[other] < byColor[other].length) orderedDiffs.push(byColor[other][idx[other]++]);
+        break;
+      }
+    }
+  } else {
+    orderedDiffs.push(diffs[0]);
+  }
+
+  // Emit one history entry per stone, building intermediate boards as we go.
+  let interimBoard = cloneList(previousBoard);
+  for (let i = 0; i < orderedDiffs.length; i++) {
+    const stone = orderedDiffs[i];
+    const isLast = (i === orderedDiffs.length - 1);
+    interimBoard = cloneList(interimBoard);
+    interimBoard[stone.row][stone.column] = stone.color;
+    const snapBoard    = isLast ? cloneList(currentState.board) : interimBoard;
+    const snapBoardKey = isLast ? currentBoardKey : boardKey(interimBoard);
+
+    const pendingMove = pendingMoves[stone.color];
+    const matchesPendingMove = pendingMove
+      && pendingMove.row === stone.row
+      && pendingMove.column === stone.column;
+
+    const snapshotBot1Decision         = matchesPendingMove ? pendingMove.bot1Decision         : null;
+    const snapshotBot2Decision         = matchesPendingMove ? pendingMove.bot2Decision         : null;
+    const snapshotCandidates           = matchesPendingMove ? pendingMove.candidates           : [];
+    const snapshotOpponentCandidates   = matchesPendingMove ? pendingMove.opponentCandidates   : [];
+    if (matchesPendingMove) pendingMoves[stone.color] = null;
+
+    const snap = {
+      board: snapBoard,
+      bot1Decision: snapshotBot1Decision,
+      bot2Decision: snapshotBot2Decision,
+      candidates: snapshotCandidates,
+      opponentCandidates: snapshotOpponentCandidates,
+      moveNum: moveHistory.length + 1,
+      color: stone.color,
+      row: stone.row,
+      column: stone.column,
+      boardKey: snapBoardKey,
+    };
+    console.log('[history] save move', {
+      moveNum: snap.moveNum,
+      color: snap.color,
+      pos: `col ${COLS[snap.column]} row ${snap.row + 1}`,
+      matchesPendingMove,
+      pendingMoveAtCommit: pendingMove
+        ? { row: pendingMove.row, col: COLS[pendingMove.column], bot1: !!pendingMove.bot1Decision, bot2: !!pendingMove.bot2Decision, candidates: pendingMove.candidates.length }
+        : null,
+      bot1Decision: snap.bot1Decision,
+      bot2Decision: snap.bot2Decision,
+      candidates: snap.candidates.length,
+      opponentCandidates: snap.opponentCandidates.length,
+      topBot1: snap.candidates.slice().sort((a,b)=>b.normalizedMerged-a.normalizedMerged).slice(0,3).map(c=>`${COLS[c.column]}${c.row+1}=${Math.round(c.normalizedMerged*100)}%`),
+      topBot2: snap.opponentCandidates.slice().sort((a,b)=>b.normalizedMerged-a.normalizedMerged).slice(0,3).map(c=>`${COLS[c.column]}${c.row+1}=${Math.round(c.normalizedMerged*100)}%`),
+    });
+    moveHistory.push(snap);
+  }
+}
+
+function viewState() {
+  if (reviewIndex !== null && reviewIndex < moveHistory.length) {
+    const snap = moveHistory[reviewIndex];
+    // Candidates come from the NEXT snap: at step N, show what was being considered
+    // for move N+1 (before it was played), so the heatmap stays meaningful without
+    // the chosen stone already occupying the top candidate cell.
+    const nextSnap = (reviewIndex + 1 < moveHistory.length) ? moveHistory[reviewIndex + 1] : null;
+    return Object.assign({}, state, {
+      board: snap.board,
+      lastDecision: snap.bot1Decision || null,
+      opponentLastDecision: snap.bot2Decision || null,
+      candidates: nextSnap ? (nextSnap.candidates || []) : [],
+      opponentCandidates: nextSnap ? (nextSnap.opponentCandidates || []) : [],
+    });
+  }
+  return state;
+}
+
+function reviewStep(delta) {
+  const idx = reviewIndex !== null ? reviewIndex : moveHistory.length - 1;
+  reviewGoTo(idx + delta);
+}
+
+function reviewGoTo(idx) {
+  if (moveHistory.length === 0) return;
+  if (idx < 0) idx = moveHistory.length - 1;
+  reviewIndex = Math.max(0, Math.min(moveHistory.length - 1, idx));
+  const snap = moveHistory[reviewIndex];
+  const nextSnap = (reviewIndex + 1 < moveHistory.length) ? moveHistory[reviewIndex + 1] : null;
+  const fmtC = c => ({
+    pos: `${COLS[c.column]}${c.row + 1}`,
+    merged: Math.round(c.normalizedMerged * 100) + '%',
+    self: Math.round(c.normalizedSelf * 100) + '%',
+    search: c.searchScore != null ? `${Math.round(c.normalizedSearch * 100)}% (${c.searchScore})` : null,
+  });
+  console.log('[history] step to', {
+    moveNum: snap.moveNum,
+    color: snap.color,
+    pos: `col ${COLS[snap.column]} row ${snap.row + 1}`,
+    bot1Decision: snap.bot1Decision,
+    bot2Decision: snap.bot2Decision,
+    nextMoveNum: nextSnap ? nextSnap.moveNum : null,
+    bot1Candidates: (nextSnap ? nextSnap.candidates : snap.candidates || []).slice().sort((a,b)=>b.normalizedMerged-a.normalizedMerged).map(fmtC),
+    bot2Candidates: (nextSnap ? nextSnap.opponentCandidates : snap.opponentCandidates || []).slice().sort((a,b)=>b.normalizedMerged-a.normalizedMerged).map(fmtC),
+  });
+  updateReviewControls();
+  redraw();
+  updateDecisionDisplay();
+}
+
+function updateReviewControls() {
+  const sec = document.getElementById('review-section');
+  if (!state || !isGameOverPhase(state.phase)) {
+    sec.style.display = 'none';
+    return;
+  }
+  sec.style.display = 'block';
+
+  if (moveHistory.length === 0) {
+    document.getElementById('review-counter').textContent = 'No move history';
+    document.getElementById('review-first').disabled = true;
+    document.getElementById('review-prev').disabled = true;
+    document.getElementById('review-next').disabled = true;
+    document.getElementById('review-last').disabled = true;
+    document.getElementById('review-move-info').textContent = 'No moves were recorded for this game.';
+    document.getElementById('review-search-stats').textContent = '';
+    return;
+  }
+
+  const idx = reviewIndex !== null ? reviewIndex : moveHistory.length - 1;
+  const total = moveHistory.length;
+  document.getElementById('review-counter').textContent = `Move ${idx + 1} / ${total}`;
+  document.getElementById('review-prev') .disabled = idx === 0;
+  document.getElementById('review-first').disabled = idx === 0;
+  document.getElementById('review-next') .disabled = idx >= total - 1;
+  document.getElementById('review-last') .disabled = idx >= total - 1;
+
+  const snap = moveHistory[idx];
+  const info = document.getElementById('review-move-info');
+  const stats = document.getElementById('review-search-stats');
+  const moveColor = snap && snap.color ? snap.color : 'Move';
+  const col = snap && snap.column != null ? COLS[snap.column] : '—';
+  const row = snap && snap.row != null ? snap.row + 1 : '—';
+  const moverDecision = snap && (snap.color === state.myColor ? snap.bot1Decision : snap.bot2Decision);
+  const strategy = moverDecision ? ` (${moverDecision.strategy})` : '';
+  info.textContent = `${moveColor} → col ${col}  row ${row}${strategy}`;
+
+  const nextSnap = (idx + 1 < total) ? moveHistory[idx + 1] : null;
+  stats.innerHTML = nextSnap ? renderReviewSearchStats(nextSnap) : '';
+}
+
+function renderReviewSearchStats(snap) {
+  function summarizeCandidates(label, color, candidates, decision) {
+    const all = candidates || [];
+    const searched = all.filter(c => c.searchScore != null);
+    const chosen = decision ? all.find(c => c.row === decision.row && c.column === decision.column) : null;
+
+    if (searched.length === 0) {
+      // Tactical / pattern / VCF move — no search tree was explored.
+      const stratLabel = decision ? decision.strategy.toUpperCase() : null;
+      const heuristicPct = chosen != null
+        ? Math.round(((chosen.normalizedMerged || chosen.normalizedSelf) || 0) * 100) + '%'
+        : null;
+      const lines = [`<div style="color:${color};font-weight:bold">${label}</div>`];
+      if (stratLabel) {
+        lines.push(`<div>Strategy: ${stratLabel}</div>`);
+      }
+      if (heuristicPct) {
+        lines.push(`<div>Chosen move heuristic rank: ${heuristicPct}</div>`);
+      } else {
+        lines.push(`<div style="color:#7f7f9f">No search tree — instant decision.</div>`);
+      }
+      return lines.join('');
+    }
+
+    let best = searched[0];
+    for (const candidate of searched) {
+      if ((candidate.searchScore || 0) > (best.searchScore || 0)) best = candidate;
+    }
+
+    const bestPos = `col ${COLS[best.column]} row ${best.row + 1}`;
+    const chosenScore = chosen && chosen.searchScore != null ? chosen.searchScore.toLocaleString() : 'n/a';
+    const chosenPct = chosen && chosen.normalizedSearch != null ? Math.round(chosen.normalizedSearch * 100) + '%' : 'n/a';
+
+    return [
+      `<div style="color:${color};font-weight:bold">${label}</div>`,
+      `<div>Searched ${searched.length} positions</div>`,
+      `<div>Best score ${best.searchScore.toLocaleString()} at ${bestPos}</div>`,
+      `<div>Chosen move search score ${chosenScore} (${chosenPct})</div>`,
+    ].join('');
+  }
+
+  const bot1Block = summarizeCandidates('Bot 1', '#4ade80', (snap && snap.candidates) || [], snap && snap.bot1Decision);
+  const bot2Block = summarizeCandidates('Bot 2', '#f87171', (snap && snap.opponentCandidates) || [], snap && snap.bot2Decision);
+  return `<div style="display:flex;flex-direction:column;gap:8px">${bot1Block}<div style="height:1px;background:#1e1d2e"></div>${bot2Block}</div>`;
+}
+
+function updateDecisionDisplay() {
+  const vs = viewState();
+  const decSec = document.getElementById('decision-section');
+  const d  = vs.lastDecision;
+  const d2 = vs.opponentLastDecision;
+
+  if (d || d2) {
+    decSec.style.display = 'block';
+    if (d) {
+      setText('d-strategy', d.strategy.toUpperCase());
+      setText('d-pos',      `col ${COLS[d.column]} row ${d.row + 1}`);
+      setText('d-score',    d.score.toLocaleString());
+      setText('d-reason',   d.reason || '');
+    } else {
+      setText('d-strategy', '—'); setText('d-pos', '—');
+      setText('d-score', '—'); setText('d-reason', '');
+    }
+    if (d2) {
+      setText('d2-strategy', d2.strategy.toUpperCase());
+      setText('d2-pos',      `col ${COLS[d2.column]} row ${d2.row + 1}`);
+      setText('d2-score',    d2.score.toLocaleString());
+      setText('d2-reason',   d2.reason || '');
+    } else {
+      setText('d2-strategy', '—'); setText('d2-pos', '—');
+      setText('d2-score', '—'); setText('d2-reason', '');
+    }
+  } else {
+    decSec.style.display = 'none';
+  }
+}
+
+// ── Defaults ─────────────────────────────────────────────────────────────────
+
+fetch('/api/defaults').then(r => r.json()).then(d => {
+  const roomEl = document.getElementById('c-room');
+  if (roomEl && !roomEl.value) document.getElementById('c-room').value = d.roomName;
+  document.getElementById('c-movetime').value = d.moveTimeSeconds;
+  document.getElementById('c-url').value      = d.baseUrl;
+  const b1El = document.getElementById('b1-name');
+  const b2El = document.getElementById('b2-name');
+  if (b1El && !b1El.value) document.getElementById('b1-name').value = d.botName + '-1';
+  if (b2El && !b2El.value) document.getElementById('b2-name').value = d.botName + '-2';
+  document.getElementById('b1-strategy').value = d.strategy;
+  document.getElementById('b2-strategy').value = d.strategy;
+}).catch(() => {
+  document.getElementById('b1-name').value = 'bot-1';
+  document.getElementById('b2-name').value = 'bot-2';
+});
+
+// ── Auth toggle ───────────────────────────────────────────────────────────────
+
+function setAuth(bot, mode) {
+  botAuth[bot] = mode;
+  const b = 'b' + bot;
+  document.getElementById(b + '-btn-guest')     .className = 'auth-btn' + (mode === 'guest'      ? ' active' : '');
+  document.getElementById(b + '-btn-registered').className = 'auth-btn' + (mode === 'registered' ? ' active' : '');
+  document.getElementById(b + '-guest-fields').style.display = mode === 'guest'      ? '' : 'none';
+  document.getElementById(b + '-reg-fields')  .style.display = mode === 'registered' ? '' : 'none';
+}
+
+// ── Random name helpers ──────────────────────────────────────────────────────
+function randomSuffix(len = 6) {
+  return Math.random().toString(36).slice(2, 2 + len);
+}
+
+// Small set of random initial boards to pick from when requested
+const randomBoards = [
+  "", // empty board
+  "0:Black:8:8;1:White:8:9;2:Black:8:7;",
+  "0:Black:8:8;1:White:9:9;2:Black:7:7;",
+  "0:Black:8:8;1:White:8:10;2:Black:8:6;",
+  "0:Black:8:8;1:White:9:9;2:Black:8:9;3:White:9:8;",
+  "0:Black:8:8;1:White:11:11;2:Black:5:5;",
+  "0:Black:8:8;1:White:10:10;2:Black:6:6;",
+];
+
+function pickRandomInitialBoard() {
+  const idx = Math.floor(Math.random() * randomBoards.length);
+  return randomBoards[idx] || null;
+}
+
+function generateRandomNames(force = false) {
+  try {
+    const roomEl = document.getElementById('c-room');
+    const b1El = document.getElementById('b1-name');
+    const b2El = document.getElementById('b2-name');
+    if (roomEl && (force || !roomEl.value)) {
+      roomEl.value = 'game-' + randomSuffix(6);
+    }
+    if (b1El && (force || !b1El.value)) {
+      b1El.value = 'bot1-' + randomSuffix(4);
+    }
+    if (b2El && (force || !b2El.value)) {
+      b2El.value = 'bot2-' + randomSuffix(4);
+    }
+  } catch (e) {}
+}
+
+// ── Start / restart ───────────────────────────────────────────────────────────
+
+function startGame() {
+  const errEl = document.getElementById('start-error');
+  errEl.style.display = 'none';
+
+  const b1auth = botAuth[1];
+  const b2auth = botAuth[2];
+
+  const preset = document.getElementById('c-preset').value;
+  const randomBoardEnabled = document.getElementById('c-random-board').checked;
+  const initialBoard = randomBoardEnabled ? pickRandomInitialBoard() : (preset || null);
+  const config = {
+    roomName:                    document.getElementById('c-room').value.trim(),
+    moveTimeSeconds:             parseInt(document.getElementById('c-movetime').value, 10) || 5,
+    baseUrl:                     document.getElementById('c-url').value.trim(),
+    initialBoardMovesHistory:    initialBoard,
+    bot1: {
+      auth:     b1auth,
+      name:     b1auth === 'guest' ? document.getElementById('b1-name').value.trim() : null,
+      username: b1auth === 'registered' ? document.getElementById('b1-username').value.trim() : null,
+      password: b1auth === 'registered' ? document.getElementById('b1-password').value : null,
+      strategy: document.getElementById('b1-strategy').value,
+    },
+    bot2: {
+      auth:     b2auth,
+      name:     b2auth === 'guest' ? document.getElementById('b2-name').value.trim() : null,
+      username: b2auth === 'registered' ? document.getElementById('b2-username').value.trim() : null,
+      password: b2auth === 'registered' ? document.getElementById('b2-password').value : null,
+      strategy: document.getElementById('b2-strategy').value,
+    },
+  };
+
+  const btn = document.getElementById('start-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+
+  fetch('/api/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  }).then(r => {
+    if (r.ok) {
+      setView('game');
+    } else {
+      r.text().then(t => showStartError(t || 'Server error'));
+      btn.disabled = false;
+      btn.textContent = 'Start Game';
+    }
+  }).catch(e => {
+    showStartError(e.toString());
+    btn.disabled = false;
+    btn.textContent = 'Start Game';
+  });
+}
+
+function restart() {
+  state = null;
+  moveHistory = [];
+  reviewIndex = null;
+  pendingMoves = { Black: null, White: null };
+  lastBot1DecisionKey = null;
+  lastBot2DecisionKey = null;
+  reviewBaseBoard = null;
+  setView('config');
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('start-btn').textContent = 'Start Game';
+  clearInterval(timerTick);
+  generateRandomNames(true);
+}
+
+function fastRestart() {
+  // Keep all current config values, only regenerate room and bot names,
+  // then immediately start a new game with the same parameters.
+  state = null;
+  moveHistory = [];
+  reviewIndex = null;
+  pendingMoves = { Black: null, White: null };
+  lastBot1DecisionKey = null;
+  lastBot2DecisionKey = null;
+  reviewBaseBoard = null;
+  setView('config');
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('start-btn').textContent = 'Start Game';
+  clearInterval(timerTick);
+  generateRandomNames(true);
+  // small tick to ensure DOM updates before submitting
+  setTimeout(() => startGame(), 50);
+}
+
+function showStartError(msg) {
+  const el = document.getElementById('start-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setView(v) {
+  appView = v;
+  document.getElementById('config-view').style.display = v === 'config' ? 'flex' : 'none';
+  document.getElementById('game-view')  .style.display = v === 'game'   ? 'block' : 'none';
+  if (v === 'game') resizeCanvas();
+}
+
+// ── POV toggle (removed — heatmap now always shows split circles for both bots) ──
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+function cellSize() {
+  const avail = Math.min(window.innerWidth - 290, window.innerHeight - 60);
+  return Math.max(18, Math.floor(avail / (BOARD_SIZE + 1)));
+}
+
+function resizeCanvas() {
+  if (appView !== 'game') return;
+  const cs = cellSize();
+  canvas.width  = cs * (BOARD_SIZE + 1);
+  canvas.height = cs * (BOARD_SIZE + 1);
+  if (state) drawBoard(cs);
+}
+
+function redraw() {
+  const cs = cellSize();
+  canvas.width  = cs * (BOARD_SIZE + 1);
+  canvas.height = cs * (BOARD_SIZE + 1);
+  drawBoard(cs);
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+window.addEventListener('keydown', e => {
+  if (appView !== 'game' || !state || !isGameOverPhase(state.phase)) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); reviewStep(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); reviewStep(1); }
+  if (e.key === 'Home')       { e.preventDefault(); reviewGoTo(0); }
+  if (e.key === 'End')        { e.preventDefault(); reviewGoTo(-1); }
+});
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen  = () => setConn(true);
+  ws.onclose = () => { setConn(false); setTimeout(connect, 2000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = e => {
+    try {
+      const nextState = JSON.parse(e.data);
+      if (nextState.startupError) {
+        const message = nextState.startupError;
+        restart();
+        showStartError(message);
+        return;
+      }
+
+      const prevPhase = state ? state.phase : null;
+      state = nextState;
+      update();
+
+      if (isGameOverPhase(state.phase) && !isGameOverPhase(prevPhase)) {
+        console.log('[moveHistory] game over — full UI move history (' + moveHistory.length + ' entries):');
+        moveHistory.forEach((snap, i) => {
+          console.log(`  UI move ${i + 1}: ${snap.color} (${snap.row}, ${snap.column})`);
+        });
+      }
+    } catch {}
+  };
+}
+
+function setConn(ok) {
+  const el = document.getElementById('conn-status');
+  el.textContent = ok ? '● CONNECTED' : '● DISCONNECTED';
+  el.className   = ok ? 'conn-ok' : 'conn-err';
+}
+
+connect();
+generateRandomNames(true);
+
+// ── Update ────────────────────────────────────────────────────────────────────
+
+function update() {
+  if (!state || appView !== 'game') return;
+
+  captureReviewSnapshot(state);
+
+  // In review mode keep the index pinned unless the user is on the last frame
+  // (auto-advance to stay current while the game is still live).
+  if (reviewIndex !== null && reviewIndex === moveHistory.length - 2) {
+    reviewIndex = moveHistory.length - 1;
+  }
+
+  updatePanel();
+  updateReviewControls();
+  updateStats();
+  redraw();
+}
+
+function colorDotHtml(color) {
+  const cls = color === 'Black' ? 'dot-black' : 'dot-white';
+  return `<span class="dot ${cls}"></span>${color}`;
+}
+
+function updatePanel() {
+  const phase = state.phase; // 'lobby' | 'playing' | 'gameOver'
+  const gameOver = isGameOverPhase(phase);
+
+  const badge = document.getElementById('phase-badge');
+  badge.textContent = gameOver ? 'GAME OVER' : phase.toUpperCase();
+  badge.className   = 'phase-badge ' + (
+    phase === 'lobby'   ? 'phase-lobby'    :
+    phase === 'playing' ? 'phase-playing'  : 'phase-gameover'
+  );
+
+  // Result banner
+  const banner = document.getElementById('result-banner');
+  if (state.gameResult && gameOver) {
+    const r = state.gameResult;
+    let txt, cls;
+    if (r === 'BlackWin' || r === 'WhiteWin') {
+      const winner = r.replace('Win', '');
+      if (winner === state.myColor) { txt = 'BOT 1 WINS'; cls = 'res-win'; }
+      else                           { txt = 'BOT 2 WINS'; cls = 'res-win'; }
+    } else if (r === 'Draw') {
+      txt = 'DRAW'; cls = 'res-draw';
+    } else {
+      txt = r; cls = 'res-loss';
+    }
+    banner.textContent    = txt;
+    banner.className      = cls;
+    banner.style.display  = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Restart button
+  document.getElementById('restart-section').style.display =
+    gameOver ? 'block' : 'none';
+
+  // Info rows
+  setText('v-room',    state.roomName || '—');
+  setHtml('v-mycolor', state.myColor ? colorDotHtml(state.myColor) : '—');
+
+  if (state.playerTurn) {
+    const mine = state.playerTurn === state.myColor;
+    setHtml('v-turn',
+      colorDotHtml(state.playerTurn) +
+      (mine ? ' <span style="color:#4ade80;font-size:10px">(Bot 1)</span>' : '')
+    );
+  } else {
+    setText('v-turn', '—');
+  }
+
+  setText('v-timelimit', state.moveTimeSeconds ? `${state.moveTimeSeconds}s` : '—');
+
+  // Timer
+  const timerSec = document.getElementById('timer-section');
+  if (phase === 'playing' && state.moveTimeSeconds && state.turnStartedAtMs) {
+    timerSec.style.display = 'block';
+    clearInterval(timerTick);
+    timerTick = setInterval(tickTimer, 100);
+    tickTimer();
+  } else {
+    timerSec.style.display = 'none';
+    clearInterval(timerTick);
+    const td = document.getElementById('timer-display');
+    td.textContent = '—';
+    td.className   = 't-off';
+  }
+
+  // Decision (delegates to viewState so review mode shows historical decisions)
+  updateDecisionDisplay();
+
+  // Initial board
+  const initSec = document.getElementById('init-section');
+  if (state.initialBoardMovesHistory) {
+    initSec.style.display = 'block';
+    document.getElementById('init-history').textContent = state.initialBoardMovesHistory;
+  } else {
+    initSec.style.display = 'none';
+  }
+}
+
+
+function shadeByPercent(base, pct) {
+  const alpha = 0.12 + (pct * 0.78);
+  return `rgba(${base[0]},${base[1]},${base[2]},${alpha})`;
+}
+
+function updateStats() {
+  try {
+    const el = document.getElementById('stats-list');
+    const totalEl = document.getElementById('stats-total');
+    if (!el || !totalEl) return;
+    const stats = state.stats || {};
+    const entries = Object.entries(stats).map(([k,v]) => ({k,v}));
+    const total = entries.reduce((s,e) => s + (e.v||0), 0);
+    if (total === 0) {
+      totalEl.textContent = 'No games yet';
+      el.innerHTML = '';
+      return;
+    }
+    totalEl.textContent = `Total games: ${total}`;
+    entries.sort((a,b) => b.v - a.v);
+    el.innerHTML = entries.map(e => {
+      const pct = Math.round((e.v / total) * 1000) / 10; // one decimal
+      return `
+        <div class="stat-row">
+          <div class="stat-label"><span>${e.k}</span><span>${e.v} (${pct}%)</span></div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {}
+}
+
+function tickTimer() {
+  if (!state || !state.moveTimeSeconds || !state.turnStartedAtMs) return;
+  const elapsed   = (Date.now() - state.turnStartedAtMs) / 1000;
+  const remaining = Math.max(0, state.moveTimeSeconds - elapsed);
+  const frac      = remaining / state.moveTimeSeconds;
+
+  const td = document.getElementById('timer-display');
+  td.textContent = remaining.toFixed(1) + 's';
+  td.className   = frac > 0.5 ? 't-ok' : frac > 0.25 ? 't-warn' : 't-danger';
+
+  const fill = document.getElementById('timer-fill');
+  fill.style.width      = (frac * 100) + '%';
+  fill.style.background = frac > 0.5 ? '#4ade80' : frac > 0.25 ? '#facc15' : '#f87171';
+
+  if (remaining === 0) clearInterval(timerTick);
+}
+
+function setText(id, txt)  { document.getElementById(id).textContent = txt; }
+function setHtml(id, html) { document.getElementById(id).innerHTML   = html; }
+
+// ── Board drawing ─────────────────────────────────────────────────────────────
+
+function drawBoard(cs) {
+  const margin   = cs;
+  const gridSpan = (BOARD_SIZE - 1) * cs;
+  const W = canvas.width, H = canvas.height;
+
+  ctx.fillStyle = '#c8a262';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.04)';
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    ctx.fillRect(0, margin + i * cs - 0.5, W, 1);
+  }
+
+  ctx.strokeStyle = 'rgba(80,50,10,0.55)';
+  ctx.lineWidth   = 0.8;
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    const x = margin + i * cs;
+    const y = margin + i * cs;
+    ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, margin + gridSpan); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(margin + gridSpan, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(60,35,5,0.8)';
+  ctx.lineWidth   = 1.5;
+  ctx.strokeRect(margin, margin, gridSpan, gridSpan);
+
+  const starPts = [[4,4],[4,9],[4,14],[9,4],[9,9],[9,14],[14,4],[14,9],[14,14]];
+  ctx.fillStyle = 'rgba(60,35,5,0.75)';
+  for (const [r, c] of starPts) {
+    ctx.beginPath();
+    ctx.arc(margin + c * cs, margin + r * cs, cs * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const fontSize = Math.max(9, cs * 0.38);
+  ctx.font          = `${fontSize}px monospace`;
+  ctx.fillStyle     = 'rgba(60,35,5,0.6)';
+  ctx.textAlign     = 'center';
+  ctx.textBaseline  = 'middle';
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    ctx.fillText(COLS[i], margin + i * cs, margin / 2);
+    ctx.fillText(COLS[i], margin + i * cs, H - margin / 2);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    ctx.fillText(String(i + 1), margin - cs * 0.15, margin + i * cs);
+  }
+
+  if (!state) return;
+  const vs = viewState();
+
+  if ((vs.candidates && vs.candidates.length) || (vs.opponentCandidates && vs.opponentCandidates.length)) {
+    drawAllCandidates(cs, margin, vs);
+  }
+
+  if (vs.board) {
+    drawStones(cs, margin, vs);
+  }
+
+  if (vs.lastDecision) {
+    const d = vs.lastDecision;
+    const x = margin + d.column * cs;
+    const y = margin + d.row    * cs;
+    ctx.beginPath();
+    ctx.arc(x, y, cs * 0.47, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(96,165,250,0.9)';
+    ctx.lineWidth   = 2.5;
+    ctx.stroke();
+  }
+
+  if (vs.opponentLastDecision) {
+    const d = vs.opponentLastDecision;
+    const x = margin + d.column * cs;
+    const y = margin + d.row    * cs;
+    ctx.beginPath();
+    ctx.arc(x, y, cs * 0.47, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(248,113,113,0.9)';
+    ctx.lineWidth   = 2.5;
+    ctx.stroke();
+  }
+}
+
+function candidateScore(c) {
+  return c.normalizedMerged > 0 ? c.normalizedMerged : c.normalizedSelf;
+}
+
+function drawAllCandidates(cs, margin, vs) {
+  const baseR = cs * 0.38;
+
+  // Build a position map so we can render both bots at the same cell together.
+  const posMap = new Map();
+  for (const c of (vs.candidates || [])) {
+    if (vs.board[c.row]?.[c.column] !== null) continue;
+    const key = `${c.row}_${c.column}`;
+    const e = posMap.get(key) || { row: c.row, col: c.column };
+    e.bot1 = c;
+    posMap.set(key, e);
+  }
+  for (const c of (vs.opponentCandidates || [])) {
+    if (vs.board[c.row]?.[c.column] !== null) continue;
+    const key = `${c.row}_${c.column}`;
+    const e = posMap.get(key) || { row: c.row, col: c.column };
+    e.bot2 = c;
+    posMap.set(key, e);
+  }
+
+  for (const { row, col, bot1, bot2 } of posMap.values()) {
+    const x = margin + col * cs;
+    const y = margin + row * cs;
+
+    if (bot1 && bot2) {
+      // ── Split circle: left = bot1 (green), right = bot2 (red) ──
+      const ns1 = candidateScore(bot1);
+      const ns2 = candidateScore(bot2);
+      const r   = baseR * (0.45 + Math.max(ns1, ns2) * 0.55);
+
+      // Top semicircle (bot1)
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, r, Math.PI, 0, false);
+      ctx.closePath();
+      ctx.fillStyle = shadeByPercent([74, 222, 128], ns1);
+      ctx.fill();
+
+      // Bottom semicircle (bot2)
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, r, 0, Math.PI, false);
+      ctx.closePath();
+      ctx.fillStyle = shadeByPercent([248, 113, 113], ns2);
+      ctx.fill();
+
+      // Dividing line (horizontal)
+      ctx.beginPath();
+      ctx.moveTo(x - r, y);
+      ctx.lineTo(x + r, y);
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth   = 0.5;
+      ctx.stroke();
+
+      // Percentage labels: bot1 above center, bot2 below center
+      const hasSearch1 = bot1.searchScore != null;
+      const hasSearch2 = bot2.searchScore != null;
+      if (hasSearch1 || hasSearch2) {
+        const fontSize = Math.max(7, Math.round(r * 0.65));
+        ctx.font      = `bold ${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        if (hasSearch1) {
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(Math.round(ns1 * 100) + '%', x, y - 1);
+        }
+        if (hasSearch2) {
+          ctx.textBaseline = 'top';
+          ctx.fillText(Math.round(ns2 * 100) + '%', x, y + 1);
+        }
+      }
+    } else if (bot1) {
+      // ── Full circle (green) ──
+      const ns    = candidateScore(bot1);
+      const top   = Math.max(ns, 0.04);
+      const alpha = 0.12 + top * 0.68;
+      const r     = baseR * (0.45 + top * 0.55);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = shadeByPercent([74, 222, 128], ns);
+      ctx.fill();
+      if (top > 0.75) {
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.25, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(74,222,128,${alpha * 0.45})`;
+        ctx.lineWidth   = 1;
+        ctx.stroke();
+      }
+      if (bot1.searchScore != null) {
+        ctx.font         = `bold ${Math.round(r * 0.9)}px sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle    = 'rgba(255,255,255,0.92)';
+        ctx.fillText(Math.round(ns * 100) + '%', x, y);
+      }
+    } else if (bot2) {
+      // ── Full circle (red) ──
+      const ns    = candidateScore(bot2);
+      const top   = Math.max(ns, 0.04);
+      const alpha = 0.12 + top * 0.68;
+      const r     = baseR * (0.35 + top * 0.50);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = shadeByPercent([248, 113, 113], ns);
+      ctx.fill();
+      if (ns > 0.75) {
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.25, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(248,113,113,${alpha * 0.45})`;
+        ctx.lineWidth   = 1;
+        ctx.stroke();
+      }
+      if (bot2.searchScore != null) {
+        ctx.font         = `bold ${Math.round(r * 0.9)}px sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle    = 'rgba(255,255,255,0.92)';
+        ctx.fillText(Math.round(ns * 100) + '%', x, y);
+      }
+    }
+  }
+}
+
+function drawStones(cs, margin, vs) {
+  const radius = cs * 0.43;
+  let lastR = -1, lastC = -1;
+  if (vs.lastDecision) {
+    const d = vs.lastDecision;
+    if (vs.board[d.row] && vs.board[d.row][d.column] !== null) {
+      lastR = d.row; lastC = d.column;
+    }
+  }
+
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const piece = vs.board[r][c];
+      if (!piece) continue;
+
+      const x       = margin + c * cs;
+      const y       = margin + r * cs;
+      const isBlack = piece === 'Black';
+
+      const grad = ctx.createRadialGradient(
+        x - radius * 0.3, y - radius * 0.35, radius * 0.05,
+        x, y, radius
+      );
+      if (isBlack) {
+        grad.addColorStop(0, '#606060');
+        grad.addColorStop(1, '#0a0a0a');
+      } else {
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(1, '#c0c0c0');
+      }
+
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.strokeStyle = isBlack ? 'rgba(0,0,0,0.6)' : 'rgba(120,120,120,0.6)';
+      ctx.lineWidth   = 0.5;
+      ctx.stroke();
+
+      if (r === lastR && c === lastC) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.28, 0, Math.PI * 2);
+        ctx.fillStyle = isBlack ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.45)';
+        ctx.fill();
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>
