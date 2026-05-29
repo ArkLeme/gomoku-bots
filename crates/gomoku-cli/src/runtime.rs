@@ -694,20 +694,34 @@ where
                     DecisionPlan::new(StrategyKind::Pattern, pos, score, String::new())
                 });
             }
-            // Pre-empt open-four threats the search might miss under time pressure.
+            // Pre-empt threats that search may not handle correctly at shallow depths.
             {
+                let opponent = snapshot.my_color.opponent();
                 let candidates = snapshot.board.candidate_positions();
                 let best_self = candidates.iter()
                     .map(|&p| snapshot.board.score_move(p, snapshot.my_color))
                     .max()
                     .unwrap_or(0);
                 if best_self < 100_000 {
+                    // Single open-four: must block immediately.
                     if let Some(block_pos) = candidates.iter().copied()
-                        .filter(|&p| snapshot.board.score_move(p, snapshot.my_color.opponent()) >= 100_000)
-                        .max_by_key(|&p| snapshot.board.score_move(p, snapshot.my_color.opponent()))
+                        .filter(|&p| snapshot.board.score_move(p, opponent) >= 100_000)
+                        .max_by_key(|&p| snapshot.board.score_move(p, opponent))
                     {
                         let score = snapshot.board.score_move(block_pos, snapshot.my_color);
                         return Some(DecisionPlan::new(StrategyKind::Tactical, block_pos, score, "block open four".to_string()));
+                    }
+                    // Three or more simultaneous open-three threats: the search tree is
+                    // wide enough that shallow depths miss the danger. Delegate to
+                    // TacticalStrategy which scores both sides and picks the best block.
+                    let open_three_count = candidates.iter()
+                        .filter(|&&p| snapshot.board.score_move(p, opponent) >= 8_000)
+                        .count();
+                    if open_three_count >= 3 {
+                        if let Some(pos) = TacticalStrategy::default().select_move(snapshot) {
+                            let score = snapshot.board.score_move(pos, snapshot.my_color);
+                            return Some(DecisionPlan::new(StrategyKind::Tactical, pos, score, "block multiple open threes".to_string()));
+                        }
                     }
                 }
             }
